@@ -1,5 +1,6 @@
 import io
 import json
+import datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.staticfiles import finders
@@ -13,6 +14,15 @@ from django.core.serializers.json import DjangoJSONEncoder
 import logging
 logger = logging.getLogger(__name__)
 
+# The formats generate_report knows how to render. Callers validate against
+# this rather than letting an unknown one fall through to the exception
+# below, which a view can only report as a 500.
+SUPPORTED_REPORT_FORMATS = ("pdf", "xlsx")
+
+# Restrict the datetime key in the report bro eval to the datetime class to avoid security issues
+RESTRICTED_REPORT_BRO_EVAL_TABLE = {
+    'datetime': datetime.datetime,
+}
 
 def get_report_definition(report_name, default, report_date=None):
     """
@@ -132,6 +142,7 @@ def generate_report(report_name, definition, data, report_format="pdf", local_fi
                 encode_error_handling="strict",
                 is_test_data=is_test_data,
                 core_fonts_encoding="utf-8",
+                custom_functions=RESTRICTED_REPORT_BRO_EVAL_TABLE,
                 )
     except Exception as e:
         logger.exception(f"Error loading report definition {report_name}")
